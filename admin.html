@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SaaS Master Admin Panel - Gulfam Pizza</title>
+    <style>
+        :root {
+            --bg-primary: #FDF6EC;
+            --bg-card: #FFFFFF;
+            --text-main: #2B2D42;
+            --text-muted: #6C757D;
+            --accent: #E63946;
+            --accent-hover: #D62828;
+            --accent-secondary: #F77F00;
+            --border-color: #EAE2D8;
+            --radius-btn: 8px;
+            --radius-card: 12px;
+            --shadow: 0 4px 12px rgba(0,0,0,0.05);
+            --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-stack); }
+        body { background-color: var(--bg-primary); color: var(--text-main); padding-bottom: 60px; min-height: 100vh; }
+        
+        header { background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow); margin-bottom: 24px; }
+        .logo-area h1 { font-size: 22px; font-weight: 700; color: var(--accent); display: flex; align-items: center; gap: 8px; }
+        .logo-area p { font-size: 13px; color: var(--text-muted); }
+        .nav-links { display: flex; gap: 12px; }
+        .nav-btn { text-decoration: none; padding: 10px 18px; font-weight: 600; font-size: 14px; border-radius: var(--radius-btn); transition: all 0.2s ease-out; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; border: none; }
+        .nav-btn.primary { background-color: var(--accent); color: white; }
+        .nav-btn.primary:hover { background-color: var(--accent-hover); }
+
+        .auth-overlay { position: fixed; inset: 0; background-color: var(--bg-primary); z-index: 10000; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .auth-card { background: var(--bg-card); padding: 32px; border-radius: var(--radius-card); border: 1px solid var(--border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.08); max-width: 420px; width: 100%; display: flex; flex-direction: column; gap: 16px; }
+        .auth-card h2 { font-size: 22px; font-weight: 700; text-align: center; color: var(--text-main); margin-bottom: 6px; }
+        
+        .admin-container { max-width: 1200px; width: 100%; margin: 0 auto; padding: 0 24px; display: grid; grid-template-columns: 1fr; gap: 24px; }
+        .config-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-card); padding: 24px; box-shadow: var(--shadow); }
+        .config-card h2 { font-size: 18px; font-weight: 700; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid var(--border-color); display: flex; align-items: center; gap: 8px; }
+        
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 16px; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-group label { font-size: 13px; font-weight: 600; color: var(--text-main); }
+        .form-group input, .form-group select { padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px; background: var(--bg-card); color: var(--text-main); width: 100%; }
+        .form-group input:focus, .form-group select:focus { border-color: var(--accent); outline: none; }
+        
+        .action-btn { padding: 10px 20px; border: none; background: var(--text-main); color: white; font-weight: 600; border-radius: 6px; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+        .action-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .action-btn.accent { background: var(--accent); }
+        .action-btn.accent:hover { background: var(--accent-hover); }
+        .action-btn.danger { background: #DC3545; }
+
+        .theme-select-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 10px; }
+        .theme-option { border: 2px solid var(--border-color); border-radius: 8px; padding: 12px; cursor: pointer; text-align: center; font-weight: 600; font-size: 13px; transition: all 0.2s; background: var(--bg-card); }
+        .theme-option.active { border-color: var(--accent); background: rgba(230,57,70,0.03); color: var(--accent); }
+        
+        .crud-table-wrap { overflow-x: auto; margin-top: 16px; }
+        .crud-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+        .crud-table th, .crud-table td { padding: 12px; border-bottom: 1px solid var(--border-color); }
+        .crud-table th { background: rgba(0,0,0,0.02); font-weight: 600; }
+        .crud-table input { padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 13px; width: 100%; }
+        
+        .alert { padding: 12px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; display: none; margin-top: 10px; }
+        .alert.success { background: #E8F8F5; color: #27AE60; border: 1px solid #A3E4D7; }
+        .alert.error { background: #FADBD8; color: #C0392B; border: 1px solid #F1948A; }
+
+        .top-row-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+        @media(max-width: 768px) {
+            .top-row-layout { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Secure Gateway Shield Authentication Portal Modal Wrapper -->
+    <div class="auth-overlay" id="auth-gate">
+        <div class="auth-card">
+            <div>
+                <h2>Master Access Terminal</h2>
+                <p style="font-size: 13px; text-align: center; color: var(--text-muted);">Verification required to modify site schema variables</p>
+            </div>
+            <div class="form-group">
+                <label>System Administrator Username</label>
+                <input type="text" id="login-user" value="admin" placeholder="Enter username">
+            </div>
+            <div class="form-group">
+                <label>Security Access Code</label>
+                <input type="password" id="login-pass" value="admin" placeholder="Enter password">
+            </div>
+            <button class="action-btn accent" style="justify-content: center; padding: 12px;" onclick="verifyAdminAuth()">Unlock Panel</button>
+            <div id="auth-error" class="alert error" style="display:none; text-align:center;">Invalid credentials. Access Denied.</div>
+        </div>
+    </div>
+
+    <header>
+        <div class="logo-area">
+            <h1 id="lbl-brand-name">Master Admin Control Panel</h1>
+            <p id="lbl-brand-tagline">Dynamic Customizer Engine</p>
+        </div>
+        <div class="nav-links">
+            <a href="index.html" class="nav-btn primary">◀ Return to POS Front</a>
+            <button class="nav-btn" style="background: rgba(0,0,0,0.05); color: var(--text-main);" onclick="logOutAdmin()">Lock Console</button>
+        </div>
+    </header>
+
+    <div class="admin-container">
+        <div class="top-row-layout">
+            <!-- Section 1: Global Identity Reskinner Layout -->
+            <div class="config-card">
+                <h2>Identity Re-Skinner Matrix</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Website / Brand Name</label>
+                        <input type="text" id="cfg-brand-name" oninput="updateLiveSettings()">
+                    </div>
+                    <div class="form-group">
+                        <label>Slogan / Tagline Text</label>
+                        <input type="text" id="cfg-tagline" oninput="updateLiveSettings()">
+                    </div>
+                    <div class="form-group">
+                        <label>Currency Symbol Identifier</label>
+                        <input type="text" id="cfg-currency" oninput="updateLiveSettings()">
+                    </div>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <label style="font-size: 13px; font-weight: 600;">Interior Thematic Skin Variations Selector</label>
+                    <div class="theme-select-grid">
+                        <div class="theme-option" id="theme-industrial" onclick="selectThemeVar('industrial')">Urban Industrial</div>
+                        <div class="theme-option" id="theme-boutique" onclick="selectThemeVar('boutique')">Minimalist Boutique</div>
+                        <div class="theme-option" id="theme-neon" onclick="selectThemeVar('neon')">Neon Street Food</div>
+                        <div class="theme-option" id="theme-pastel" onclick="selectThemeVar('pastel')">Pastel Elegance</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Account Access Rules Modifiers -->
+            <div class="config-card">
+                <h2>Security Shield Terminal</h2>
+                <div class="form-group">
+                    <label>Current Gateway Password</label>
+                    <input type="password" id="pwd-curr" placeholder="••••">
+                </div>
+                <div class="form-group" style="margin-top: 8px;">
+                    <label>New Gateway Password</label>
+                    <input type="password" id="pwd-new" placeholder="••••">
+                </div>
+                <div class="form-group" style="margin-top: 8px; margin-bottom: 12px;">
+                    <label>Confirm New Password</label>
+                    <input type="password" id="pwd-conf" placeholder="••••">
+                </div>
+                <button class="action-btn" style="width: 100%; justify-content: center;" onclick="modifyAdminPassword()">Commit Password Update</button>
+                <div id="pwd-alert-success" class="alert success">Password adjusted cleanly!</div>
+                <div id="pwd-alert-error" class="alert error">Verification mismatch error.</div>
+            </div>
+        </div>
+
+        <!-- Section 3: Live Menu Inventory Management CRUD Matrix Grid -->
+        <div class="config-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid var(--border-color);">
+                <h2 style="margin:0; border:none; padding:0;">Inventory & Product Catalog Manager Matrix</h2>
+                <button class="action-btn accent" onclick="showNewProductRow()">+ Insert Custom Product</button>
+            </div>
+
+            <div class="crud-table-wrap">
+                <table class="crud-table">
+                    <thead>
+                        <tr>
+                            <th>Product Name / Label</th>
+                            <th style="width: 180px;">Category Group</th>
+                            <th style="width: 140px;">Base Price</th>
+                            <th style="width: 140px;">Available Stocks Count</th>
+                            <th style="width: 100px; text-align: center;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="crud-matrix-body">
+                        <!-- Instantiated via javascript schema state loops -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const themes = {
+            industrial: { bg: '#FDF6EC', card: '#FFFFFF', text: '#2B2D42', accent: '#E63946', hover: '#D62828', secondary: '#F77F00', border: '#EAE2D8' },
+            boutique: { bg: '#F4F1EA', card: '#FFFFFF', text: '#333D29', accent: '#606C38', hover: '#283618', secondary: '#DDA15E', border: '#D4CBB5' },
+            neon: { bg: '#0A0A0C', card: '#16161A', text: '#F8F9FA', accent: '#E63946', hover: '#FF4D6D', secondary: '#FFB703', border: '#2A2A35' },
+            pastel: { bg: '#F9F6F0', card: '#FFFFFF', text: '#4A4E69', accent: '#E07A5F', hover: '#C5654B', secondary: '#F2CC8F', border: '#EADBC8' }
+        };
+
+        function getAppState() {
+            return {
+                menu: JSON.parse(localStorage.getItem('gulfam_menu')),
+                settings: JSON.parse(localStorage.getItem('gulfam_settings')),
+                sales: JSON.parse(localStorage.getItem('gulfam_sales'))
+            };
+        }
+
+        function saveAppState(state) {
+            localStorage.setItem('gulfam_menu', JSON.stringify(state.menu));
+            localStorage.setItem('gulfam_settings', JSON.stringify(state.settings));
+            localStorage.setItem('gulfam_sales', JSON.stringify(state.sales));
+            window.dispatchEvent(new Event('storage'));
+        }
+
+        function applyTheme(themeName) {
+            const t = themes[themeName] || themes.industrial;
+            const root = document.documentElement;
+            root.style.setProperty('--bg-primary', t.bg);
+            root.style.setProperty('--bg-card', t.card);
+            root.style.setProperty('--text-main', t.text);
+            root.style.setProperty('--accent', t.accent);
+            root.style.setProperty('--accent-hover', t.hover);
+            root.style.setProperty('--accent-secondary', t.secondary);
+            root.style.setProperty('--border-color', t.border);
+        }
+
+        function verifyAdminAuth() {
+            const u = document.getElementById('login-user').value;
+            const p = document.getElementById('login-pass').value;
+            
+            const savedPass = localStorage.getItem('gulfam_admin_pwd') || 'admin';
+            
+            if (u === 'admin' && p === savedPass) {
+                document.getElementById('auth-gate').style.display = 'none';
+                sessionStorage.setItem('admin_session_auth', 'true');
+                initAdminPanel();
+            } else {
+                const err = document.getElementById('auth-error');
+                err.style.display = 'block';
+                setTimeout(() => err.style.display = 'none', 3000);
+            }
+        }
+
+        function logOutAdmin() {
+            sessionStorage.removeItem('admin_session_auth');
+            document.getElementById('auth-gate').style.display = 'flex';
+            document.getElementById('login-pass').value = '';
+        }
+
+        function initAdminPanel() {
+            if (sessionStorage.getItem('admin_session_auth') !== 'true') {
+                document.getElementById('auth-gate').style.display = 'flex';
+                return;
+            }
+            document.getElementById('auth-gate').style.display = 'none';
+            
+            const state = getAppState();
+            
+            document.getElementById('cfg-brand-name').value = state.settings.brandName;
+            document.getElementById('cfg-tagline').value = state.settings.tagline;
+            document.getElementById('cfg-currency').value = state.settings.currency;
+            
+            document.getElementById('lbl-brand-name').innerText = state.settings.brandName + " Master Panel";
+            document.getElementById('lbl-brand-tagline').innerText = state.settings.tagline;
+            
+            applyTheme(state.settings.theme);
+            
+            document.querySelectorAll('.theme-option').forEach(el => el.classList.remove('active'));
+            const activeThemeBox = document.getElementById('theme-' + state.settings.theme);
+            if(activeThemeBox) activeThemeBox.classList.add('active');
+            
+            renderCRUDMatrix();
+        }
+
+        function selectThemeVar(tName) {
+            const state = getAppState();
+            state.settings.theme = tName;
+            saveAppState(state);
+            initAdminPanel();
+        }
+
+        function updateLiveSettings() {
+            const state = getAppState();
+            state.settings.brandName = document.getElementById('cfg-brand-name').value;
+            state.settings.tagline = document.getElementById('cfg-tagline').value;
+            state.settings.currency = document.getElementById('cfg-currency').value;
+            saveAppState(state);
+            
+            document.getElementById('lbl-brand-name').innerText = state.settings.brandName + " Master Panel";
+            document.getElementById('lbl-brand-tagline').innerText = state.settings.tagline;
+        }
+
+        function modifyAdminPassword() {
+            const curr = document.getElementById('pwd-curr').value;
+            const n = document.getElementById('pwd-new').value;
+            const conf = document.getElementById('pwd-conf').value;
+            
+            const savedPass = localStorage.getItem('gulfam_admin_pwd') || 'admin';
+            
+            if(curr !== savedPass) {
+                showMsg('pwd-alert-error', 'Current password field is invalid.');
+                return;
+            }
+            if(n !== conf || n.length === 0) {
+                showMsg('pwd-alert-error', 'New confirmation password values mismatch.');
+                return;
+            }
+            
+            localStorage.setItem('gulfam_admin_pwd', n);
+            showMsg('pwd-alert-success', 'Security password mutated successfully!');
+            document.getElementById('pwd-curr').value = '';
+            document.getElementById('pwd-new').value = '';
+            document.getElementById('pwd-conf').value = '';
+        }
+
+        function showMsg(id, txt) {
+            const el = document.getElementById(id);
+            el.innerText = txt;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 3500);
+        }
+
+        function renderCRUDMatrix() {
+            const state = getAppState();
+            const tbody = document.getElementById('crud-matrix-body');
+            tbody.innerHTML = '';
+            
+            state.menu.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><input type="text" value="${item.name}" onchange="updateCrudField(${index}, 'name', this.value)"></td>
+                    <td><input type="text" value="${item.category}" onchange="updateCrudField(${index}, 'category', this.value)"></td>
+                    <td><input type="number" value="${item.price}" onchange="updateCrudField(${index}, 'price', parseFloat(this.value) || 0)"></td>
+                    <td><input type="number" value="${item.stock}" onchange="updateCrudField(${index}, 'stock', parseInt(this.value) || 0)"></td>
+                    <td style="text-align:center;">
+                        <button class="action-btn danger" style="padding:6px 12px; font-size:12px;" onclick="deleteCrudItem(${index})">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateCrudField(index, field, value) {
+            const state = getAppState();
+            state.menu[index][field] = value;
+            saveAppState(state);
+        }
+
+        function deleteCrudItem(index) {
+            if(confirm("Confirm removal of this item configuration entirely?")) {
+                const state = getAppState();
+                state.menu.splice(index, 1);
+                saveAppState(state);
+                renderCRUDMatrix();
+            }
+        }
+
+        function showNewProductRow() {
+            const state = getAppState();
+            const newItem = {
+                id: Date.now(),
+                name: "New Custom Item",
+                price: 500,
+                category: "Pizzas",
+                stock: 50
+            };
+            state.menu.unshift(newItem);
+            saveAppState(state);
+            renderCRUDMatrix();
+        }
+
+        window.onload = () => {
+            if (sessionStorage.getItem('admin_session_auth') === 'true') {
+                initAdminPanel();
+            }
+        };
+    </script>
+</body>
+</html>
