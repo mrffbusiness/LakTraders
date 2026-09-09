@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rafay POS — Point of Sale</title>
+<style>
+:root{--bg:#f4f6f8;--card:#fff;--text:#17202a;--muted:#667085;--line:#e5e7eb;--primary:#2563eb;--danger:#dc2626;--good:#16a34a}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--text)}
+header{background:#111827;color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:15px;position:sticky;top:0;z-index:5}
+.brand{font-weight:800;font-size:20px}.shopname{font-size:13px;opacity:.8}
+button,input,select{font:inherit}button{border:0;border-radius:9px;padding:10px 13px;cursor:pointer}.btn{background:var(--primary);color:#fff}.btn2{background:#eef2ff;color:#1e3a8a}.danger{background:#fee2e2;color:#991b1b}.muted{color:var(--muted)}
+.wrap{max-width:1400px;margin:auto;padding:18px;display:grid;grid-template-columns:1.5fr 1fr;gap:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 2px 8px #00000008}
+h2,h3{margin:0 0 13px}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.toolbar input{flex:1;min-width:220px}
+input,select{width:100%;border:1px solid #d1d5db;border-radius:9px;padding:10px;background:#fff}
+.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;max-height:65vh;overflow:auto}
+.product{border:1px solid var(--line);border-radius:12px;padding:13px;background:#fff;text-align:left}.product:hover{border-color:var(--primary);box-shadow:0 2px 10px #0000000b}
+.product strong{display:block;margin-bottom:6px}.price{font-weight:800}.stock{font-size:12px;color:var(--muted);margin-top:6px}
+table{width:100%;border-collapse:collapse}th,td{padding:9px 7px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}th{color:var(--muted)}
+.cart{max-height:47vh;overflow:auto}.qty{display:flex;align-items:center;gap:5px}.qty button{padding:5px 8px;background:#f1f5f9}
+.summary{border-top:1px solid var(--line);margin-top:10px;padding-top:12px}.row{display:flex;justify-content:space-between;gap:10px;margin:7px 0}.total{font-size:22px;font-weight:800}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+@media(max-width:900px){.wrap{grid-template-columns:1fr}.products{max-height:none}.cart{max-height:none}}
+</style>
+</head>
+<body>
+<header><div><div class="brand">Rafay POS</div><div class="shopname" id="shopLabel"></div></div><div><button class="btn2" onclick="location.href='admin.html'">Admin Panel</button></div></header>
+<main class="wrap">
+<section class="card">
+<h2>Products</h2>
+<div class="toolbar"><input id="search" placeholder="Search product or SKU..." oninput="renderProducts()"><select id="cat" onchange="renderProducts()"><option value="">All categories</option></select></div>
+<div class="products" id="products"></div>
+</section>
+<section class="card">
+<h2>Current Sale</h2>
+<div class="cart" id="cart"></div>
+<div class="grid2">
+<div><label class="muted">Customer</label><select id="customer"></select></div>
+<div><label class="muted">Payment</label><select id="payment"><option>Cash</option><option>Card</option><option>Bank</option><option>Other</option></select></div>
+</div>
+<div class="grid2" style="margin-top:8px"><div><label class="muted">Discount</label><input id="discount" type="number" min="0" value="0" oninput="renderCart()"></div><div><label class="muted">Tax %</label><input id="tax" type="number" min="0" value="0" oninput="renderCart()"></div></div>
+<div style="margin-top:8px"><label class="muted">Amount received</label><input id="received" type="number" min="0" oninput="renderCart()"></div>
+<div class="summary" id="summary"></div>
+<div class="actions"><button class="btn" onclick="completeSale()">Complete Sale</button><button class="danger" onclick="clearCart()">Clear Cart</button></div>
+</section>
+</main>
+<script>
+const KEY="rafay_pos_local_v1";
+let db=JSON.parse(localStorage.getItem(KEY)||"null");
+if(!db){db={shop:{name:"My Shop",currency:"PKR"},products:[
+{id:1,name:"Sample Product",sku:"SKU001",category:"General",price:100,stock:50,cost:60,active:true}
+],customers:[],sales:[],settings:{tax:0},users:[{name:"Shop Admin",username:"admin",password:"admin",role:"shop_admin"}]};save();}
+let cart=[];
+function save(){localStorage.setItem(KEY,JSON.stringify(db));}
+function money(n){return (db.shop.currency||"PKR")+" "+Number(n||0).toFixed(2)}
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function render(){document.getElementById("shopLabel").textContent=db.shop.name;let cats=[...new Set(db.products.map(p=>p.category).filter(Boolean))];cat.innerHTML='<option value="">All categories</option>'+cats.map(c=>`<option>${esc(c)}</option>`).join("");customer.innerHTML='<option value="">Walk-in customer</option>'+db.customers.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("");renderProducts();renderCart();}
+function renderProducts(){let q=search.value.toLowerCase(),c=cat.value;products.innerHTML=db.products.filter(p=>p.active!==false&&p.stock>0&&(!c||p.category===c)&&(!q||p.name.toLowerCase().includes(q)||p.sku.toLowerCase().includes(q))).map(p=>`<button class="product" onclick="add(${p.id})"><strong>${esc(p.name)}</strong><span class="price">${money(p.price)}</span><div class="stock">SKU: ${esc(p.sku)} · Stock: ${p.stock}</div></button>`).join("")||'<p class="muted">No products found.</p>'}
+function add(id){let p=db.products.find(x=>x.id===id),i=cart.findIndex(x=>x.id===id);if(!p)return;if(i<0)cart.push({id,qty:1});else if(cart[i].qty<p.stock)cart[i].qty++;renderCart();}
+function change(id,d){let i=cart.findIndex(x=>x.id===id),p=db.products.find(x=>x.id===id);if(i<0)return;cart[i].qty+=d;if(cart[i].qty<=0)cart.splice(i,1);if(p&&cart[i]&&cart[i].qty>p.stock)cart[i].qty=p.stock;renderCart();}
+function renderCart(){cartEl=document.getElementById("cart");cartEl.innerHTML=cart.length?`<table><thead><tr><th>Item</th><th>Qty</th><th>Total</th></tr></thead><tbody>${cart.map(i=>{let p=db.products.find(x=>x.id===i.id);return `<tr><td>${esc(p.name)}</td><td><div class="qty"><button onclick="change(${p.id},-1)">−</button>${i.qty}<button onclick="change(${p.id},1)">+</button></div></td><td>${money(p.price*i.qty)}</td></tr>`}).join("")}</tbody></table>`:'<p class="muted">Cart is empty. Click a product to add it.</p>';
+let sub=cart.reduce((s,i)=>s+db.products.find(p=>p.id===i.id).price*i.qty,0),disc=Math.min(Math.max(Number(discount.value||0),0),sub),taxPct=Math.max(Number(tax.value||0),0),taxAmt=(sub-disc)*taxPct/100,total=sub-disc+taxAmt,rec=Math.max(Number(received.value||0),0);summary.innerHTML=`<div class="row"><span>Subtotal</span><b>${money(sub)}</b></div><div class="row"><span>Discount</span><b>− ${money(disc)}</b></div><div class="row"><span>Tax</span><b>${money(taxAmt)}</b></div><div class="row total"><span>Total</span><span>${money(total)}</span></div><div class="row"><span>Change</span><b>${money(Math.max(rec-total,0))}</b></div>`}
+function clearCart(){cart=[];discount.value=0;tax.value=db.settings.tax||0;received.value="";renderCart();}
+function completeSale(){if(!cart.length)return alert("Add at least one product.");let sub=cart.reduce((s,i)=>s+db.products.find(p=>p.id===i.id).price*i.qty,0),disc=Math.min(Math.max(Number(discount.value||0),0),sub),taxPct=Math.max(Number(tax.value||0),0),taxAmt=(sub-disc)*taxPct/100,total=sub-disc+taxAmt,rec=Number(received.value||0);if(document.getElementById("payment").value==="Cash"&&rec<total)return alert("Amount received is less than the total.");let no="INV-"+String((db.sales.length+1)).padStart(6,"0"),items=cart.map(i=>{let p=db.products.find(x=>x.id===i.id);p.stock-=i.qty;return {id:p.id,name:p.name,sku:p.sku,qty:i.qty,price:p.price,cost:p.cost||0}});db.sales.push({no,date:new Date().toISOString(),customerId:customer.value||null,payment:payment.value,items,subtotal:sub,discount:disc,tax:taxAmt,total,received:rec,change:Math.max(rec-total,0),status:"completed"});save();printReceipt(db.sales.at(-1));clearCart();render();}
+function printReceipt(s){let w=open("","_blank","width=420,height=700");if(!w)return;w.document.write(`<html><head><title>${s.no}</title><style>body{font-family:monospace;width:280px;margin:auto}h2{text-align:center}hr{border:0;border-top:1px dashed #000}.r{display:flex;justify-content:space-between}</style></head><body><h2>${esc(db.shop.name)}</h2><p>${s.no}<br>${new Date(s.date).toLocaleString()}</p><hr>${s.items.map(i=>`<div>${esc(i.name)} x${i.qty}<span style="float:right">${money(i.price*i.qty)}</span></div>`).join("")}<hr><div class=r>Subtotal <b>${money(s.subtotal)}</b></div><div class=r>Discount <b>-${money(s.discount)}</b></div><div class=r>Tax <b>${money(s.tax)}</b></div><div class=r>Total <b>${money(s.total)}</b></div><p>Payment: ${esc(s.payment)}</p><p>Thank you!</p><script>print();<\/script></body></html>`);w.document.close();}
+render();
+</script>
+</body></html>
